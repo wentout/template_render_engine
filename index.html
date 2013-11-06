@@ -111,7 +111,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 			var str = '';
 
-			var ptn = /\{\{\s*.+\s*\}\}/g;
+			var ptn = /\{\{\s*.+?\s*\}\}/g;
 			var parts = part.split (ptn);
 			var matches = part.match (ptn);
 
