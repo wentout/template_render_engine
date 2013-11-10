@@ -140,7 +140,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             }
           } else {
             var deep = deeps( current, el );
-            deep && ( strel += deep );
+            if ( (typeof deep) == 'function' ){
+              strel += deep (obj, current);
+            } else {
+              deep && ( strel += deep );
+            }
           }
           if ( (strel == '') && (match.indexOf ('default') > (-1)) ) {
             strel = match.replace (/^[^]*\(\s*|\s*\)[^]*$/g, '');
@@ -167,7 +171,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
       return str;
     },
-    parseBlocks = function ( blocks, stars, currt ) {
+    parseBlocks = function ( blocks, stars, currt, obj ) {
 
       var len = blocks.length;
       for (var i = 0; i < len; i++) {
@@ -185,20 +189,28 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
               var len1 = current.length;
               for ( var k = 0; k < len1; k++ ) {
                 stars.push ( [ block.be4e, current[k] ] );
-                parseBlocks( block.nest, stars, current[k] );
+                parseBlocks( block.nest, stars, current[k], obj );
               }
               break;
             case '[object Object]':
               for (var k in current) {
                 if (current.hasOwnProperty(k)) {
                   stars.push ( [ block.be4e, current[k] ] );
-                  parseBlocks( block.nest, stars, current[k] );
+                  parseBlocks( block.nest, stars, current[k], obj );
                 }
               }
               break;
             default:
-              stars.push ( [ block.be4e, current ] );
-              parseBlocks( block.nest, stars );
+              if ( (typeof current) == 'function' ){
+                stars.push ( [ block.be4e, maker ] );
+                var maker = current (block, obj, blocks, stars, currt);
+                if (maker !== undefined) {
+                  parseBlocks( block.nest, stars, maker, obj );
+                }
+              } else {
+                stars.push ( [ block.be4e, current ] );
+                parseBlocks( block.nest, stars, undefined, obj );
+              }
           }
 
           stars.push ( [ block.af3e.str, block.af3e.cnt ] );
@@ -290,7 +302,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
         };
 
-        parseBlocks( blocks, stars );
+        parseBlocks( blocks, stars, undefined, obj );
 
         var len = stars.length;
         for ( var i = 0; i < len; i++ ) {
@@ -442,7 +454,14 @@ var result = render(template, data);
   <br/>
   <h2>Просто ещё...</h2>
   <pre id = "tester">
+
+    test_fn_start {% test %}
+      123123
+    {% / %} test_fn_fin
+
     first
+    {{ val }}
+
     {{bt:upper:lower:escape:capitalize:trim}}
     {{ not_exists:default ( nexist ) }}
     {% nn %}
@@ -495,7 +514,13 @@ var result = render(template, data);
           be: 'be2'
         }
       },
-      bt: '  bit testing task <> &   '  
+      bt: '  bit testing task <> &  ',
+      val: function (obj, current) {
+        return 12345 + '\n\t\t';
+      },
+      test: function (block, obj, blocks, stars, currt) {
+        return 123;
+      }
     }
 
     >>>
@@ -540,7 +565,13 @@ var result = render(template, data);
           be: 'be2'
         }
       },
-      bt: '  bit testing task <> &  '
+      bt: '  bit testing task <> &  ',
+      val: function (obj, current) {
+        return 12345 + '\n\t\t';
+      },
+      test: function (block, obj, blocks, stars, currt) {
+        return 123;
+      }
     });
   $('fin1').innerHTML = strs;
 
