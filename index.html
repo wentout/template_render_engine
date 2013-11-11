@@ -1,404 +1,99 @@
 <!DOCTYPE html>
 <html>
 
-  <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Template render engine : testing task" />
+<head>
+  <meta charset='utf-8' />
+  <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+  <meta name="description" content="Template render engine : testing task" />
 
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+  <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>Template render engine</title>
+  <title>Template render engine</title>
+  <script charset = "utf-8">
 
-
-
-
-<script charset = "utf-8">
-
-/*
-
-The MIT License (MIT)
-
-Copyright (c) 2013 went.out
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-*/
-
-
-  var $ = function (id) {
-    if (id[0] == '#') {
-      id = id.slice(1);
-    }
-    return document.getElementById (id);
-  };
-
-
-  var render = (function () {
-
-    var helpers = {
-      upper: function (str) {
-        return str.toUpperCase();
-      },
-      lower: function (str) {
-        return str.toLowerCase();
-      },
-      escape: function (str) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-      },
-      trim: (function () {
-        if (String.prototype.trim) {
-          return function (str) {
-            return str.trim ();
-          };
-        } else {
-          return function (str) {
-            return str.replace(/^\s+|\s+$/g, '');
-          };
-        }
-      }()),
-      capitalize: function (str) {
-        var split = str.split(' ');
-        var len = split.length;
-        var arr = [];
-        for (var i = 0; i < len; i++) {
-          var el = split[i];
-          if (el[0]) {
-            arr.push ( el[0].toUpperCase() + el.slice(1) );
-          } else {
-            arr.push ('');
-          }
-        }
-        return arr.join(' ');
+    var $ = function (id) {
+      if (id[0] == '#') {
+        id = id.slice(1);
       }
-    },
-    // we don't need this checking pattern for names, cause it is already there, in JS naming convention !
-    names_check = /^[^a-zA-Z_\.]|[^a-zA-Z0-9-_\.]+$/,
-    deeps = function (obj, val) {
-      var hs = val.split('.');
-      var len = hs.length;
-      var deep;
-      var num = 0;
-      for (var i = 0; i < len; i++) {
-        var el = hs[i];
-        if (deep) {
-          if (deep[el]) {
-            deep = deep[el];
-            num++;
-          }
-        } else {
-          if (obj[el]) {
-            deep = obj[el];
-            num++;
-          }
-        }
-      }
-      if (num == len) {
-        return deep;
-      } else {
-        return undefined;
-      }
-    },
-    parseStar = function ( part, current, obj ) {
-
-      var str = '';
-
-      var ptn = /\{\{\s*.+\s*\}\}/g;
-      var parts = part.split (ptn);
-      var matches = part.match (ptn);
-
-      str += parts[0];
-
-      if (matches) {
-        var len = matches.length;
-        for (var i = 0; i < len; i++) {
-          var match = matches [i];
-          var elem = match.replace(/^\{\{\s*|\s*\}\}$/g, '').split(':');
-          var el = elem[0];
-          var strel = '';
-
-          if (el[0] == '.') {
-            if (el.length > 1) {
-              strel += deeps( current, el.slice(1) );
-            } else {
-              strel += current;
-            }
-          } else {
-            var deep = deeps( current, el );
-            if ( (typeof deep) == 'function' ){
-              strel += deep (obj, current);
-            } else {
-              deep && ( strel += deep );
-            }
-          }
-          if ( (strel == '') && (match.indexOf ('default') > (-1)) ) {
-            strel = match.replace (/^[^]*\(\s*|\s*\)[^]*$/g, '');
-          }
-          var eln = elem.length;
-          if (eln > 1) {
-            for (var k = 1; k < eln; k++) {
-              var fn = elem[k];
-              if (helpers[fn]) {
-                strel = helpers[fn] (strel);
-              } else {
-                continue;
-              }
-            }
-          }
-
-          str += strel;
-
-        }
-        if (len > 0) {
-          str += parts[ len ];
-        }
-      }
-
-      return str;
-    },
-    parseBlocks = function ( blocks, stars, currt, obj ) {
-
-      var len = blocks.length;
-      for (var i = 0; i < len; i++) {
-        
-        var block = blocks [i];
-
-        if (block.cnt) {
-          var current = block.cnt;
-          if (block.sub) {
-            current = currt || block.cnt;
-          }
-
-          switch ( Object.prototype.toString.call( current ) ) {
-            case '[object Array]':
-              var len1 = current.length;
-              for ( var k = 0; k < len1; k++ ) {
-                stars.push ( [ block.be4e, current[k] ] );
-                parseBlocks( block.nest, stars, current[k], obj );
-              }
-              break;
-            case '[object Object]':
-              for (var k in current) {
-                if (current.hasOwnProperty(k)) {
-                  stars.push ( [ block.be4e, current[k] ] );
-                  parseBlocks( block.nest, stars, current[k], obj );
-                }
-              }
-              break;
-            default:
-              if ( (typeof current) == 'function' ){
-                stars.push ( [ block.be4e, maker ] );
-                var maker = current (block, obj, blocks, stars, currt);
-                if (maker !== undefined) {
-                  parseBlocks( block.nest, stars, maker, obj );
-                }
-              } else {
-                stars.push ( [ block.be4e, current ] );
-                parseBlocks( block.nest, stars, undefined, obj );
-              }
-          }
-
-          stars.push ( [ block.af3e.str, block.af3e.cnt ] );
-        }
-
-      }
-
+      return document.getElementById (id);
     };
 
+  </script>
+  <script charset = "utf-8" src = "./javascripts/tre.min.js">
+  </script>
 
-    return function (tpl, obj) {
+</head>
 
-      // to  cut the comments
-      tpl = tpl.replace ( /\{#[^]*#\}/g, '' );
-      
-      // split & blocks
-      var ptn = /\{\%\s*[a-zA-Z0-9._/:-]+\s*\%\}/g;
-      var parts = tpl.split (ptn);
-      var matches = tpl.match (ptn);
+<body>
 
-      // statring
-      var stars = [ [ parts[0], obj ] ];
+  <!-- HEADER -->
+  <div id="header_wrap" class="outer">
+    <header class="inner">
+      <a id="forkme_banner" href="https://github.com/wentout/template_render_engine">View on GitHub</a>
 
-      var blocks = [];
-      var curnt = [];
-      var pstr = '';
-      
-      if( matches ){
+      <h1 id="project_title">Template render engine</h1>
+      <h2 id="project_tagline">testing task</h2>
 
-        var len = matches.length;
-        for ( var i = 0; i < len; i++ ) {
+      <section id="downloads">
+        <a class="zip_download_link" href="https://github.com/wentout/template_render_engine/zipball/master">Download this project as a .zip file</a>
+        <a class="tar_download_link" href="https://github.com/wentout/template_render_engine/tarball/master">Download this project as a tar.gz file</a>
+      </section>
+    </header>
+  </div>
 
-          var str = matches[i].replace (/^\{\%\s*|\s*\%\}$/g, '');
-
-          var cln = curnt.length;
-          
-          if (str === '/') {
-
-            curnt [cln - 1].af3e = {
-              cnt: ( curnt [ cln - 2 ] ?  curnt [ cln - 2 ].cnt : obj ),
-              str: parts[ i + 1 ]
-            };
-            curnt.pop();
-
-          } else {
-
-            var currt = obj;
-            var sub = false;
-  
-            if (str === '.') {
-              sub = true;
-              if (cln > 0) {
-                currt = curnt[cln - 1].cnt;
-              } else {
-                /// wow wow wow, bad bad bad ! 
-                currt = obj;
-              }
-            } else {
-              currt = deeps( obj, str );
-            }
-
-            var struct = {
-
-              cnt: currt,
-              sub: sub,
-              nest: [],
-              be4e: parts[ i + 1 ],
-              af3e: {
-                cnt: null,
-                str: ''
-              }
-
-            };
-
-            if (cln == 0) {
-              
-              blocks.push ( struct );
-              curnt.push ( struct );
-
-            } else {
-
-              curnt[cln - 1].nest.push ( struct );
-              var last = curnt[cln - 1].nest.length - 1;
-              curnt.push ( curnt[cln - 1].nest [ last ] );
-
-            }
-
-          }
-
-        };
-
-        parseBlocks( blocks, stars, undefined, obj );
-
-        var len = stars.length;
-        for ( var i = 0; i < len; i++ ) {
-          pstr += parseStar ( stars[i][0], stars[i][1], obj );
-        }
-
-      } else {
-        
-        pstr += parseStar ( tpl, obj, obj );
-
-      }
-
-      return pstr;
-
-    };
-
-
-  })();
-
-
-</script>
+  <!-- MAIN CONTENT -->
+  <div id="main_content_wrap" class="outer">
+    <section id="main_content" class="inner">
 
 
 
-  </head>
+      <h1>Тестовое задание на JavaScript</h1>
 
-  <body>
-
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/wentout/template_render_engine">View on GitHub</a>
-
-          <h1 id="project_title">Template render engine</h1>
-          <h2 id="project_tagline">testing task</h2>
-
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/wentout/template_render_engine/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/wentout/template_render_engine/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        
-
-
-  <h1>Тестовое задание на JavaScript</h1>
-
-  <p>Реализовать шаблонизатор на JavaScript (можно использовать функции языка, доступные в последних версиях Chrome, Firefox и IE 9+). Шаблонизатор должен поддерживать функцию генерации контента по заданному шаблону с заданным набором данных. Её прототип приведён ниже:</p>
-  <p><b>function render (template, data);</b></p>
-  <p>Где template – строка, содержащая текст шаблона на его специальном языке, а data – объект JavaScript, содержащий набор данных для генерации. Функция должна возвращать строку с результатом обработки.</p>
-  <p>Результат необходимо прислать в виде одного файла JS, либо набора файлов JS с указанием главного файла и порядка включения.</p>
-  <h2>Синтаксис языка шаблонов:</h2>
-  <h3>Подстановки:</h3>
-  <p>Должны поддерживаться конструкции вида: {{ name }}, где name имя ключа из набора данных. Если имя отсутствует, то вместо него подставляется пустая строка. Допустимое имя – последовательность из алфавитных и цифровых символов и знаков подчёркивания, начинающаяся с алфавитного символа или знака подчёркивания. Между именем и фигурными скобками допускается произвольное количество пробельных символов. Между парой фигурных скобок пробельные символы не допускаются.</p>
-  <h3>Блоки:</h3>
-  <p>Блоком называется конструкция вида:</p>
-  <p><b>{% name %} body {% / %}</b></p>
-  <p>Она обрабатывается специальным образом:
-Если ключ name отсутствует в наборе или его значение равно пустой строке, то тело блока не выводится.
-Если ключ присутствует и не является списком, то тело блока выводится один раз.
-Если ключ присутствует и является списком, то тело блока выводится столько раз, сколько элементов списка.</p>
-  <p>Внутри блока будет доступна специальная переменная с именем . (точка), которая устанавливается на каждой итерации цикла в текущий элемент. Это имя может быть использовано наравне с другими в подстановках и блоках: {{ . }} или {% . %}, и работает по общей логике.
-Блоки могут быть вложенными, при этом закрывающая конструкция {% / %} относится к ближайшей открывающей конструкции блока, а переменная . (точка) относится к самому глубокому блоку, в который она вложена./p>
-  <h3>Блоки:</h3>
-  <p>Комментарием называется конструкция вида:
-{# body #}
-Тело комментария не обрабатывается и не включается в результирующий текст.</p>
-  <h3>Пример работы:</h3>
-  <pre>
+      <p>Реализовать шаблонизатор на JavaScript (можно использовать функции языка, доступные в последних версиях Chrome, Firefox и IE 9+). Шаблонизатор должен поддерживать функцию генерации контента по заданному шаблону с заданным набором данных. Её прототип приведён ниже:</p>
+      <p><b>function render (template, data);</b></p>
+      <p>Где template – строка, содержащая текст шаблона на его специальном языке, а data – объект JavaScript, содержащий набор данных для генерации. Функция должна возвращать строку с результатом обработки.</p>
+      <p>Результат необходимо прислать в виде одного файла JS, либо набора файлов JS с указанием главного файла и порядка включения.</p>
+      <h2>Синтаксис языка шаблонов:</h2>
+      <h3>Подстановки:</h3>
+      <p>Должны поддерживаться конструкции вида: {{ name }}, где name имя ключа из набора данных. Если имя отсутствует, то вместо него подставляется пустая строка. Допустимое имя – последовательность из алфавитных и цифровых символов и знаков подчёркивания, начинающаяся с алфавитного символа или знака подчёркивания. Между именем и фигурными скобками допускается произвольное количество пробельных символов. Между парой фигурных скобок пробельные символы не допускаются.</p>
+      <h3>Блоки:</h3>
+      <p>Блоком называется конструкция вида:</p>
+      <p><b>{% name %} body {% / %}</b></p>
+      <p>Она обрабатывается специальным образом:
+        Если ключ name отсутствует в наборе или его значение равно пустой строке, то тело блока не выводится.
+        Если ключ присутствует и не является списком, то тело блока выводится один раз.
+        Если ключ присутствует и является списком, то тело блока выводится столько раз, сколько элементов списка.</p>
+        <p>Внутри блока будет доступна специальная переменная с именем . (точка), которая устанавливается на каждой итерации цикла в текущий элемент. Это имя может быть использовано наравне с другими в подстановках и блоках: {{ . }} или {% . %}, и работает по общей логике.
+          Блоки могут быть вложенными, при этом закрывающая конструкция {% / %} относится к ближайшей открывающей конструкции блока, а переменная . (точка) относится к самому глубокому блоку, в который она вложена./p>
+          <h3>Блоки:</h3>
+          <p>Комментарием называется конструкция вида:
+            {# body #}
+            Тело комментария не обрабатывается и не включается в результирующий текст.</p>
+            <h3>Пример работы:</h3>
+            <pre>
 
 var template = "&lt;h1&gt;Category: {{category}}&lt;/h1&gt;\n" +
-"&lt;ol&gt;\n" +
-"{# items must be non-empty for valid markup #}" + 
-"{% items %}" +
-"   &lt;li&gt;{{ . }}&lt;/li&gt;\n" +
-"{% / %}" +
-"&lt;/ol&gt;\n";
-var result = render(template, {
-   category: "Fruits",
-   items: ["Mango", "Banana", "Orange" ]
+  "&lt;ol&gt;\n" +
+  "{# items must be non-empty for valid markup #}" + 
+  "{% items %}" +
+  "   &lt;li&gt;{{ . }}&lt;/li&gt;\n" +
+  "{% / %}" +
+  "&lt;/ol&gt;\n";
+  var result = render(template, {
+  category: "Fruits",
+  items: ["Mango", "Banana", "Orange" ]
 });
 Результатом обработки будет:
 &lt;h1&gt;Category: Fruits&lt;/h1&gt;
 &lt;ol&gt;
-   &lt;li&gt;Mango&lt;/li&gt;
-   &lt;li&gt;Banana&lt;/li&gt;
-   &lt;li&gt;Orange&lt;/li&gt;
+&lt;li&gt;Mango&lt;/li&gt;
+&lt;li&gt;Banana&lt;/li&gt;
+&lt;li&gt;Orange&lt;/li&gt;
 &lt;/ol&gt;
 
-  </pre>
-  <h3>Пример с вложенными блоками:</h3>
-  <pre>
+          </pre>
+          <h3>Пример с вложенными блоками:</h3>
+          <pre>
 
 var data = { table : [[1,2,3], [4,5,6]] };
 var template = "&lt;table&gt;\n" +
@@ -413,189 +108,187 @@ var template = "&lt;table&gt;\n" +
 var result = render(template, data);
 Результатом обработки будет:
 &lt;table&gt;
-   &lt;tr&gt;
-      &lt;td&gt;1&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;
-   &lt;/tr&gt;
-   &lt;tr&gt;
-      &lt;td&gt;4&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;6&lt;/td&gt;
-   &lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;1&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;6&lt;/td&gt;
+&lt;/tr&gt;
 &lt;/table&gt;
 
-  </pre>
-  <br/>
-  <h3>Бонусное задание — фильтры:</h3>
-  <p>В конструкциях могут встречаться так называемые фильтры:</p>
-  <p><b>{{ name:filter1:filter2:filter.. }}</b></p>
-  <p>Фильтр обрабатывает значение по ключу name и возвращает результат обработки. Если указано несколько фильтров, то каждый последующий после первого получает результат предыдущего на вход.</p>
-  <p>upper : преобразует строку к верхнему регистру</p>
-  <p>lower : преобразует строку к нижнему регистру</p>
-  <p>escape : экранирует HTML-символы <, >, & в соответствующие HTML-сущности.</p>
-  <p>trim : обрезает пробельные символы с начала и с конца строки</p>
-  <p>capitalize : преобразует к верхнему регистру первые буквы слов в строке.</p>
-  <p>Также должен быть определён специальный фильтр default, который может принимать значение:</p>
-  <p>{{ name : default(value) }} – в случае, если ключ name в наборе не присутствует (или соответствующее значение равно пустой строке), то результатом будет являться value. Если же ключ в наборе присутствует, то default возвращает значение без изменений.</p>
-  <p>Допускается также реализация и других фильтров, по желанию.</p>
+          </pre>
+          <br/>
+          <h3>Бонусное задание — фильтры:</h3>
+          <p>В конструкциях могут встречаться так называемые фильтры:</p>
+          <p><b>{{ name:filter1:filter2:filter.. }}</b></p>
+          <p>Фильтр обрабатывает значение по ключу name и возвращает результат обработки. Если указано несколько фильтров, то каждый последующий после первого получает результат предыдущего на вход.</p>
+          <p>upper : преобразует строку к верхнему регистру</p>
+          <p>lower : преобразует строку к нижнему регистру</p>
+          <p>escape : экранирует HTML-символы <, >, & в соответствующие HTML-сущности.</p>
+          <p>trim : обрезает пробельные символы с начала и с конца строки</p>
+          <p>capitalize : преобразует к верхнему регистру первые буквы слов в строке.</p>
+          <p>Также должен быть определён специальный фильтр default, который может принимать значение:</p>
+          <p>{{ name : default(value) }} – в случае, если ключ name в наборе не присутствует (или соответствующее значение равно пустой строке), то результатом будет являться value. Если же ключ в наборе присутствует, то default возвращает значение без изменений.</p>
+          <p>Допускается также реализация и других фильтров, по желанию.</p>
 
-  <br/>
-  <hr/>
-  <br/>
-  <h2>Результат примера</h2>
-  <pre id = "fin2">
-  </pre>
-  <br/>
-  <hr/>
-  <br/>
-  <h2>Результат примера с блоками</h2>
-  <pre id = "fin3">
-  </pre>
+          <br/>
+          <hr/>
+          <br/>
+          <h2>Результат примера</h2>
+          <pre id = "fin2">
+          </pre>
+          <br/>
+          <hr/>
+          <br/>
+          <h2>Результат примера с блоками</h2>
+          <pre id = "fin3">
+          </pre>
 
-  <br/>
-  <hr/>
-  <br/>
-  <h2>Просто ещё...</h2>
-  <pre id = "tester">
+          <br/>
+          <hr/>
+          <br/>
+          <h2>Просто ещё...</h2>
+          <pre id = "tester">
 
-    test_fn_start {% test %}
-      123123
-    {% / %} test_fn_fin
+test_fn_start {% test %}
+  123123
+{% / %} test_fn_fin
 
-    first
-    {{ val }}
+first
+  {{ val }}
 
-    {{bt:upper:lower:escape:capitalize:trim}}
-    {{ not_exists:default ( nexist ) }}
-    {% nn %}
-    {% . %}
-    {% . %}
-      [{{ . }}]
-    {% / %}
-    {% / %}
+  {{bt:upper:lower:escape:capitalize:trim}}
+  {{ not_exists:default ( nexist ) }}
+  {% nn %}
+      {% . %}
+        {% . %}
+         [{{ . }}]
+        {% / %}
+      {% / %}
         asdf 1
-        {% fda.str %}
-          zxcv 1 {{.}}
-        {% / %}
-        asdf 2
-        {% fda.sde %}
-          zxcv 2
-          {% ssda %}
-            zxcv 22
-          {% / %}
-        {% / %}
-        asdf 3
+      {% fda.str %}
+       zxcv 1 {{.}}
+      {% / %}
+      asdf 2
+      {% fda.sde %}
+        zxcv 2
+        {% ssda %}
+       zxcv 22
+     {% / %}
+    {% / %}
+    asdf 3
+    {% / %} asdqwer
 
-
-      {% / %} asdqwer
-    
     second {% nn %}
-        start
-        {% mda %}
-          zxcv 3 {{.be}}
-        {% / %}
-        end
-    {% / %} fin
+    start
+    {% mda %}
+    zxcv 3 {{.be}}
+    {% / %}
+    end
+  {% / %} fin
 
-  </pre>
+          </pre>
 
-  <pre>
-        ---
+          <pre>
+            ---
 
-    {
-      nn: [ [ [ 123, 321 ], [ 123, 321 ] ], [ [ 123, 321 ], [ 123, 321 ] ] ],
-      fda: {
-        str: 321,
-        sde: 765
-      },
-      ssda: 4321,
-      mda : {
-        str: {
-          be: 'be1'
-        },
-        sde: {
-          be: 'be2'
-        }
-      },
-      bt: '  bit testing task <> &  ',
-      val: function (obj, current) {
-        return 12345 + '\n\t\t';
-      },
-      test: function (block, obj, blocks, stars, currt) {
-        return 123;
-      }
+{
+  nn: [ [ [ 123, 321 ], [ 123, 321 ] ], [ [ 123, 321 ], [ 123, 321 ] ] ],
+  fda: {
+    str: 321,
+    sde: 765
+  },
+  ssda: 4321,
+  mda : {
+  str: {
+    be: 'be1'
+  },
+  sde: {
+    be: 'be2'
+  }
+  },
+  bt: '  bit testing task <> &  ',
+  val: function (obj, current) {
+    return 12345 + '\n\t\t';
+  },
+  test: function (block, obj, blocks, stars, currt) {
+    return 123;
+  }
+}
+
+</pre>
+>>>
+<br/>
+<pre id = "fin1" >
+</pre>
+
+
+</section>
+</div>
+
+<!-- FOOTER  -->
+<div id="footer_wrap" class="outer">
+  <footer class="inner">
+    <p class="copyright">Template render engine maintained by <a href="https://github.com/wentout">wentout</a></p>
+    <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+  </footer>
+</div>
+
+
+
+</body>
+
+
+<script charset = "utf-8">
+
+var str = $ ('tester').innerHTML;
+var strs = render (str, 
+{
+  nn: [ [ [ 123, 321 ], [ 123, 321 ] ], [ [ 123, 321 ], [ 123, 321 ] ] ],
+  fda: {
+    str: 321,
+    sde: 765
+  },
+  ssda: 4321,
+  mda : {
+    str: {
+      be: 'be1'
+    },
+    sde: {
+      be: 'be2'
     }
+  },
+  bt: '  bit testing task <> &  ',
+  val: function (obj, current) {
+    return 12345 + '\n\t\t';
+  },
+  test: function (block, obj, blocks, stars, currt) {
+    return 123;
+  }
+});
+$('fin1').innerHTML = strs;
 
-    >>>
-  </pre>
-  <br/>
-  <pre id = "fin1" >
-  </pre>
+var template = "<h1>Category: {{category}}</h1>\n" +
+"<ol>\n" +
+"{# items must be non-empty for valid markup #}" + 
+"{% items %}" +
+"   <li>{{ . }}</li>\n" +
+"{% / %}" +
+"</ol>\n";
 
+$('fin2').innerHTML = render(template, {
+  category: "Fruits",
+  items: ["Mango", "Banana", "Orange" ]
+});
 
-      </section>
-    </div>
-
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Template render engine maintained by <a href="https://github.com/wentout">wentout</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
-      </footer>
-    </div>
-
-    
-
-  </body>
-
-
-  <script charset = "utf-8">
-
-  var str = $ ('tester').innerHTML;
-  var strs = render (str, 
-    {
-      nn: [ [ [ 123, 321 ], [ 123, 321 ] ], [ [ 123, 321 ], [ 123, 321 ] ] ],
-      fda: {
-        str: 321,
-        sde: 765
-      },
-      ssda: 4321,
-      mda : {
-        str: {
-          be: 'be1'
-        },
-        sde: {
-          be: 'be2'
-        }
-      },
-      bt: '  bit testing task <> &  ',
-      val: function (obj, current) {
-        return 12345 + '\n\t\t';
-      },
-      test: function (block, obj, blocks, stars, currt) {
-        return 123;
-      }
-    });
-  $('fin1').innerHTML = strs;
-
-  var template = "<h1>Category: {{category}}</h1>\n" +
-  "<ol>\n" +
-  "{# items must be non-empty for valid markup #}" + 
-  "{% items %}" +
-  "   <li>{{ . }}</li>\n" +
-  "{% / %}" +
-  "</ol>\n";
-  
-  $('fin2').innerHTML = render(template, {
-    category: "Fruits",
-    items: ["Mango", "Banana", "Orange" ]
-  });
-
-  var data = { table : [[1,2,3], [4,5,6]] };
-  var template = "<table>" +
-  "{% table %} <tr>\n" +
-  "{% . %}<td>{{ . }}</td>{% / %}" +
-  "</tr>{% / %}" +
-  "</table>\n";
-  var str3 = render(template, data);
-  $('fin3').innerHTML = str3;
+var data = { table : [[1,2,3], [4,5,6]] };
+var template = "<table>" +
+"{% table %} <tr>\n" +
+"{% . %}<td>{{ . }}</td>{% / %}" +
+"</tr>{% / %}" +
+"</table>\n";
+var str3 = render(template, data);
+$('fin3').innerHTML = str3;
 
 
 </script>
