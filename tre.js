@@ -90,7 +90,9 @@ var render = (function () {
 
 		var str = '';
 
-		var ptn = /\{\{\s*.+\s*\}\}/g;
+		// FIX: Quantificator is too greedy
+		var ptn = /\{\{\s*.+?\s*\}\}/g;
+
 		var parts = part.split (ptn);
 		var matches = part.match (ptn);
 
@@ -200,7 +202,8 @@ var render = (function () {
 		tpl = tpl.replace ( /\{#[^]*#\}/g, '' );
 		
 		// split & blocks
-		var ptn = /\{\%\s*[a-zA-Z0-9._/:-]+\s*\%\}/g;
+		// FIX: Quantificator is too greedy
+		var ptn = /\{\%\s*[a-zA-Z0-9._/:-]+?\s*\%\}/g;
 		var parts = tpl.split (ptn);
 		var matches = tpl.match (ptn);
 
