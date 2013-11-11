@@ -209,7 +209,7 @@ var render = (function () {
 
 		var blocks = [];
 		var curnt = [];
-		var pstr = '';
+		var pstr = [];
 		
 		if( matches ){
 
@@ -279,16 +279,16 @@ var render = (function () {
 
 			var len = stars.length;
 			for ( var i = 0; i < len; i++ ) {
-				pstr += parseStar ( stars[i][0], stars[i][1], obj );
+				pstr.push( parseStar ( stars[i][0], stars[i][1], obj ) );
 			}
 
 		} else {
 			
-			pstr += parseStar ( tpl, obj, obj );
+			pstr.push( parseStar ( tpl, obj, obj ) );
 
 		}
 
-		return pstr;
+		return pstr.join('');
 
 	};
 
