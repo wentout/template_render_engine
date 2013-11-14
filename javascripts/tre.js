@@ -199,7 +199,7 @@ var render = (function () {
 	return function (tpl, obj) {
 
 		// to  cut the comments
-		tpl = tpl.replace ( /\{#[^]*#\}/g, '' );
+		tpl = tpl.replace ( /\{#[^]*?#\}/g, '' );
 		
 		// split & blocks
 		// FIX: Quantificator is too greedy
